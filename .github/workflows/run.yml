@@ -1,0 +1,79 @@
+name: Convert Rules for Surge
+on:
+    workflow_dispatch:
+    schedule:
+        - cron: "30 22 * * *"
+    push:
+        branches:
+            -master
+        paths-ignore:
+            - "**/README.md"
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Set variables
+              run: |
+                echo "BUILDTIME=$(TZ=Asia/Shanghai date +'%Y-%m-%d %H:%M')" >> $GITHUB_ENV
+              shell: bash
+            
+            - name: Checkout
+              uses: actions/checkout@v4
+              with:
+                repository: NSZA156/surge-geox-rules
+
+            - name: Checkout Loyalsoldier/geoip
+              uses: actions/checkout@v4
+              with:
+                repository: Loyalsoldier/geoip
+                ref: release
+                path: loyalsoldier
+            
+            - name: Setup Working Dirs
+              run: |
+                mkdir v2rules surgerules
+                chmod 755 v2rules surgerules
+            
+            - name: Setup tools
+              run: |
+                wget "https://github.com/MetaCubeX/geo/releases/download/v1.1/geo-linux-amd64"
+                chmod +x geo-linux-amd64
+            
+            - name: Download GeoSite
+              run: |
+                wget "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat"
+
+            - name: Extract Geosite
+              run: ./geo-linux-amd64 unpack site geosite.dat -d v2rules/
+
+            - name: Convert
+              run: |
+                cd v2rules || exit 1
+                for file in ./* ;
+                do 
+                sed '' `grep "include:" $file | sed "s/include://g"` $file > $file.tmp
+                grep "domain:" $file.tmp | sed -e "s/domain:/DOMAIN-SUFFIX,/g" -e "s/ @.*//g" > ../surgerules/$file.conf
+                grep "keyword:" $file.tmp | sed -e "s/keyword:/DOMAIN-KEYWORD,/g" -e "s/ @.*//g" >> ../surgerules/$file.conf
+                grep "full:" $file.tmp | sed -e "s/full:/DOMAIN,/g" -e "s/ @.*//g" >> ../surgerules/$file.conf
+                grep "regex:" $file.tmp | sed -e "s/regex:/URL-REGEX,/g" -e "s/ @.*//g" >> ../surgerules/$file.conf
+                rm $file.tmp
+                done ;
+
+            - name: Ready to Push
+              run: |
+                mkdir -p release/geo/geosite
+                mkdir release/geo/geoip
+                cp surgerules/* release/geo/geosite/
+                cp loyalsoldier/surge/* release/geo/geoip/
+            
+            - name: Push
+              run: |
+                cd release || exit 1
+                git init
+                git config --local user.name "github-actions[bot]"
+                git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                git checkout -b release
+                git add .
+                git commit -m "Released on ${{ env.BUILDTIME }}"
+                git remote add origin "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}"
+                git push -f -u origin release
