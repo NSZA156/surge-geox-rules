@@ -46,18 +46,29 @@ jobs:
             - name: Extract Geosite
               run: ./geo-linux-amd64 unpack site geosite.dat -d v2rules/
 
+            - name: Extract rules with attributes
+              run: |
+                cd v2rules || exit 1
+                for FILE in `ls ./ | grep -v "@"`
+                do
+                for ATTR in `grep -o "@[^ ]*" $FILE | sort -u`
+                do
+                grep $ATTR $FILE > $FILE$ATTR
+                done
+                done
+
             - name: Convert
               run: |
                 cd v2rules || exit 1
-                for file in ./* ;
+                for FILE in ./*
                 do 
-                sed '' `grep "include:" $file | sed "s/include://g"` $file > $file.tmp
-                grep "domain:" $file.tmp | sed -e "s/domain:/DOMAIN-SUFFIX,/g" -e "s/ @.*//g" > ../surgerules/$file.conf
-                grep "keyword:" $file.tmp | sed -e "s/keyword:/DOMAIN-KEYWORD,/g" -e "s/ @.*//g" >> ../surgerules/$file.conf
-                grep "full:" $file.tmp | sed -e "s/full:/DOMAIN,/g" -e "s/ @.*//g" >> ../surgerules/$file.conf
-                grep "regex:" $file.tmp | sed -e "s/regex:/URL-REGEX,/g" -e "s/ @.*//g" >> ../surgerules/$file.conf
-                rm $file.tmp
-                done ;
+                sed '' `grep "include:" $FILE | sed "s/include://g"` $FILE > $FILE.tmp
+                grep "domain:" $FILE.tmp | sed -e "s/domain:/DOMAIN-SUFFIX,/g" -e "s/ @.*//g" > ../surgerules/$FILE.conf
+                grep "keyword:" $FILE.tmp | sed -e "s/keyword:/DOMAIN-KEYWORD,/g" -e "s/ @.*//g" >> ../surgerules/$FILE.conf
+                grep "full:" $FILE.tmp | sed -e "s/full:/DOMAIN,/g" -e "s/ @.*//g" >> ../surgerules/$FILE.conf
+                grep "regex:" $FILE.tmp | sed -e "s/regex:/URL-REGEX,/g" -e "s/ @.*//g" >> ../surgerules/$FILE.conf
+                rm $FILE.tmp
+                done
 
             - name: Ready to Push
               run: |
