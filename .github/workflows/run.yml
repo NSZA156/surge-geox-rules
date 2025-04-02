@@ -66,7 +66,6 @@ jobs:
                 grep "domain:" $FILE.tmp | sed -e "s/domain:/DOMAIN-SUFFIX,/g" -e "s/ @.*//g" > ../surgerules/$FILE.conf
                 grep "keyword:" $FILE.tmp | sed -e "s/keyword:/DOMAIN-KEYWORD,/g" -e "s/ @.*//g" >> ../surgerules/$FILE.conf
                 grep "full:" $FILE.tmp | sed -e "s/full:/DOMAIN,/g" -e "s/ @.*//g" >> ../surgerules/$FILE.conf
-                grep "regex:" $FILE.tmp | sed -e "s/regex:/URL-REGEX,/g" -e "s/ @.*//g" >> ../surgerules/$FILE.conf
                 rm $FILE.tmp
                 done
 
